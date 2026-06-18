@@ -53,6 +53,14 @@ def main(argv: list[str] | None = None) -> int:
     p_daily = sub.add_parser("daily-start")
     p_daily.add_argument("--date", default=None)
 
+    p_stage = sub.add_parser("stage")
+    p_stage.add_argument("--date", required=True)
+    p_stage.add_argument("--verdict", required=True, choices=["CLEAR", "HOLD"])
+    p_stage.add_argument("--note", default="")
+    p_stage.add_argument("--title", default=None)
+    p_stage.add_argument("--description", default=None)
+    p_stage.add_argument("--tags", default=None)
+
     args = parser.parse_args(argv)
     data_dir = args.data_dir
 
@@ -176,6 +184,29 @@ def main(argv: list[str] | None = None) -> int:
         item = queue.create_pipeline_item(target_date, topic)
         queue.save_pipeline_item(data_dir, item)
         print(f"{target_date} started: {topic['title']}")
+        return 0
+
+    if args.command == "stage":
+        item = queue.load_pipeline_item(data_dir, args.date)
+        if item is None:
+            print(f"no pipeline item for {args.date}", file=sys.stderr)
+            return 1
+        target = "pending_approval" if args.verdict == "CLEAR" else "hold"
+        try:
+            queue.set_status(item, target)
+        except queue.InvalidTransition as exc:
+            print(f"cannot stage: {exc}", file=sys.stderr)
+            return 1
+        item["compliance_verdict"] = {"verdict": args.verdict, "note": args.note}
+        if args.title is not None:
+            item["metadata"]["title"] = args.title
+        if args.description is not None:
+            item["metadata"]["description"] = args.description
+        if args.tags is not None:
+            item["metadata"]["tags"] = [t.strip() for t in args.tags.split(",")
+                                        if t.strip()]
+        queue.save_pipeline_item(data_dir, item)
+        print(f"{args.date} -> {target} ({args.verdict})")
         return 0
 
     return 1

@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from gevideo import queue
 from gevideo import heygen
+from gevideo import kit
 from gevideo import notify
 from gevideo import youtube
 from gevideo.config import load_config
@@ -66,6 +67,10 @@ def main(argv: list[str] | None = None) -> int:
     p_notify.add_argument("--date", default=None)
     p_notify.add_argument("--text", default=None)
     p_notify.add_argument("--webhook-url", default=None)
+
+    p_kit = sub.add_parser("kit-broadcast")
+    p_kit.add_argument("--date", required=True)
+    p_kit.add_argument("--api-key", default=None)
 
     args = parser.parse_args(argv)
     data_dir = args.data_dir
@@ -231,6 +236,29 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         notify.post_chat_webhook(url, message)
         print("chat notified")
+        return 0
+
+    if args.command == "kit-broadcast":
+        item = queue.load_pipeline_item(data_dir, args.date)
+        if item is None:
+            print(f"no pipeline item for {args.date}", file=sys.stderr)
+            return 1
+        if not item.get("youtube_video_id") or not item.get("publish_at"):
+            print(f"item {args.date} is not scheduled (no youtube_video_id / "
+                  f"publish_at)", file=sys.stderr)
+            return 1
+        title = item.get("metadata", {}).get("title", item["title"])
+        youtube_url = f"https://youtu.be/{item['youtube_video_id']}"
+        body = kit.build_broadcast_body(
+            subject=title,
+            html_content=kit.youtube_email_html(title, youtube_url),
+            send_at=item["publish_at"])
+        api_key = args.api_key or get_secret("KIT_API_KEY")
+        client = kit.make_default_client(api_key)
+        broadcast_id = client.create_broadcast(body)
+        item["kit_broadcast_id"] = broadcast_id
+        queue.save_pipeline_item(data_dir, item)
+        print(f"{args.date} -> kit broadcast {broadcast_id} for {item['publish_at']}")
         return 0
 
     return 1

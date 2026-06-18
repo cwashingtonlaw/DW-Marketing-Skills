@@ -8,6 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from gevideo import queue
+from gevideo import crosspost
 from gevideo import heygen
 from gevideo import kit
 from gevideo import notify
@@ -71,6 +72,11 @@ def main(argv: list[str] | None = None) -> int:
     p_kit = sub.add_parser("kit-broadcast")
     p_kit.add_argument("--date", required=True)
     p_kit.add_argument("--api-key", default=None)
+
+    p_xp = sub.add_parser("crosspost")
+    p_xp.add_argument("--date", required=True)
+    p_xp.add_argument("--webhook-url", default=None)
+    p_xp.add_argument("--platforms", default=None)
 
     args = parser.parse_args(argv)
     data_dir = args.data_dir
@@ -259,6 +265,31 @@ def main(argv: list[str] | None = None) -> int:
         item["kit_broadcast_id"] = broadcast_id
         queue.save_pipeline_item(data_dir, item)
         print(f"{args.date} -> kit broadcast {broadcast_id} for {item['publish_at']}")
+        return 0
+
+    if args.command == "crosspost":
+        item = queue.load_pipeline_item(data_dir, args.date)
+        if item is None:
+            print(f"no pipeline item for {args.date}", file=sys.stderr)
+            return 1
+        if not item.get("youtube_video_id") or not item.get("publish_at"):
+            print(f"item {args.date} is not scheduled (no youtube_video_id / "
+                  f"publish_at)", file=sys.stderr)
+            return 1
+        url = args.webhook_url or get_secret("CROSSPOST_WEBHOOK_URL")
+        platforms = ([p.strip() for p in args.platforms.split(",") if p.strip()]
+                     if args.platforms else None)
+        meta = item.get("metadata", {})
+        payload = crosspost.build_crosspost_payload(
+            video_url=f"https://youtu.be/{item['youtube_video_id']}",
+            title=meta.get("title", item["title"]),
+            description=meta.get("description", ""),
+            publish_at=item["publish_at"],
+            platforms=platforms)
+        crosspost.post_crosspost(url, payload)
+        item["crosspost"] = {"posted": True, "platforms": payload["platforms"]}
+        queue.save_pipeline_item(data_dir, item)
+        print(f"{args.date} -> cross-posted to {payload['platforms']}")
         return 0
 
     return 1

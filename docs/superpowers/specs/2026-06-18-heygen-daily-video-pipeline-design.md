@@ -22,7 +22,8 @@ YouTube loop is proven.
 | Avatar / voice | **Custom HeyGen avatar + voice clone of the responsible attorney.** Required to satisfy Louisiana's no-non-lawyer-spokesperson rule (`ge-compliance-la`). |
 | Topic source | **Maintained content backlog/calendar.** `ge-ideate` proposes topics; attorney promotes them to `ready`; the daily job pulls the next `ready` item. |
 | Distribution scope | **YouTube first, pluggable distribution interface.** Cross-post adapter added without reworking the pipeline. |
-| Cross-post engine | **Opus Clip as the primary automated adapter** (API/webhooks or its Zapier MCP). SocialPilot is an optional manual/secondary tool. **Kit is excluded** from the video path (email-only; no social posting). |
+| Cross-post engine | **Opus Clip as the primary automated adapter** (API/webhooks or its Zapier MCP). SocialPilot is an optional manual/secondary tool. |
+| Newsletter email | **Kit broadcast adapter** — emails the subscriber list the YouTube link, scheduled to send at the video's go-live time. (Kit posts to no social feeds, but its broadcast API fits the newsletter email.) |
 | Unautomatable destinations | **Manual-post reminder** for Facebook personal, Instagram personal, and Snapchat in the approval notification. No third-party tool can automate these (Meta blocks personal-profile posting; no tool supports Snapchat). |
 | Integration approach | **MCP connectors + scheduled headless Claude run** (Approach A). HeyGen via its MCP/API; YouTube via the Data API wrapped in a plugin script; launchd daily job; Gmail + Google Chat for notifications. |
 
@@ -65,7 +66,7 @@ the same operational pattern as the firm's court/jail tracker.
 |---|---|---|
 | `ge-video-daily` | Orchestrator / headless daily entrypoint; runs the whole pipeline and stages output for approval | "run today's video," "daily video job" |
 | `ge-heygen` | Wraps HeyGen: script → avatar+voice render → poll → download MP4 | "generate the HeyGen video," "render the avatar video" |
-| `ge-distribute` | Pluggable distribution: v1 YouTube (native), v2 Opus Clip adapter | "schedule the video," "publish to YouTube," "cross-post the video" |
+| `ge-distribute` | Pluggable distribution: v1 YouTube (native); v2 Opus Clip (social cross-post) + Kit (newsletter email) adapters | "schedule the video," "publish to YouTube," "cross-post the video," "email the newsletter" |
 | `ge-content-queue` | Manages the backlog/calendar and the pending-approval queue; handles `approve`/`reject` | "content backlog," "approve today's video," "what's queued" |
 
 ### 4.2 Supporting scripts (TDD'd, in each skill's `scripts/`)
@@ -73,6 +74,8 @@ the same operational pattern as the firm's court/jail tracker.
 - `heygen_generate.py` — submit render job, poll status, download MP4.
 - `youtube_schedule.py` — OAuth2; upload as private with `publishAt`.
 - `opusclip_post.py` — v2 cross-post adapter (Opus Clip API / Zapier MCP).
+- `kit_broadcast.py` — v2 newsletter adapter; create/schedule a Kit broadcast
+  with the YouTube link, send time = the video's `publishAt`.
 - `queue.py` — JSON state machine for backlog + pipeline + approval queue.
 - `notify.py` — Gmail + Google Chat notifications (reuses existing connectors).
 - `bin/` — launchd plist + installer.
@@ -97,7 +100,9 @@ the same operational pattern as the firm's court/jail tracker.
 8. **Approve** — on approval, `ge-distribute` (YouTube adapter) uploads the video
    as *private* with `publishAt` = the next open daily slot → status `scheduled`.
    **YouTube publishes it at the slot time with nothing running.** (v2: the Opus
-   Clip adapter also schedules the cross-posts.)
+   Clip adapter also schedules the cross-posts, and the Kit adapter schedules a
+   newsletter broadcast with the YouTube link to send at the same go-live time —
+   so the email links to an already-live video.)
 9. **Backlog refill** — when the `ready` count drops below a threshold,
    `ge-ideate` proposes new topics as `proposed`; the attorney promotes them to
    `ready`, preserving editorial control.
@@ -137,11 +142,12 @@ or the `ready` backlog runs low, the daily notification nudges the attorney.
 
 ## 8. Secrets & config
 
-HeyGen API key, YouTube OAuth client + refresh token, and Opus Clip credentials
-live outside the repo (`~/.config/ge-video/`, `chmod 600`) and are never
-committed. Non-secret IDs (avatar, voice, channel) live in `config.json`. The
-README documents the one-time setup: HeyGen avatar/voice creation, YouTube OAuth
-consent, Opus Clip connection, and retrieving the IDs.
+HeyGen API key, YouTube OAuth client + refresh token, Opus Clip credentials, and
+the Kit API key live outside the repo (`~/.config/ge-video/`, `chmod 600`) and are
+never committed. Non-secret IDs (avatar, voice, channel, Kit list/segment id, the
+newsletter from-name/address) live in `config.json`. The README documents the
+one-time setup: HeyGen avatar/voice creation, YouTube OAuth consent, Opus Clip
+connection, Kit API key + list selection, and retrieving the IDs.
 
 ## 9. Error handling
 
@@ -151,6 +157,8 @@ consent, Opus Clip connection, and retrieving the IDs.
   Quota is a non-issue (one upload ≈ 1,600 of 10,000 daily units).
 - **Opus Clip** (v2) failure → cross-posts fail soft; the YouTube publish still
   proceeds, and the failure is reported.
+- **Kit** (v2) broadcast failure → fails soft; the YouTube publish still proceeds,
+  and the failure is reported so the email can be sent manually.
 - **Empty/low backlog** → notify "backlog low, run ge-ideate."
 - **Hard rule:** never publish on HOLD or without approval. Every run appends to a
   pipeline log.
@@ -161,7 +169,7 @@ consent, Opus Clip connection, and retrieving the IDs.
 
 - **Unit:** `queue.py` state transitions, `publishAt` slot computation, metadata
   builder, compliance-verdict parsing.
-- **Integration (mocked):** HeyGen, YouTube, and Opus Clip clients hit
+- **Integration (mocked):** HeyGen, YouTube, Opus Clip, and Kit clients hit
   recorded/stub responses — no live API calls in tests.
 - **Manual gate:** one real end-to-end Short, reviewed by the attorney, before the
   launchd timer is enabled.
@@ -171,7 +179,6 @@ consent, Opus Clip connection, and retrieving the IDs.
 - Long-form daily video (separate manual track).
 - SocialPilot automated adapter (manual/secondary only unless Enterprise API is
   later acquired).
-- Kit newsletter email integration (possible future hook).
 - Automated posting to Facebook personal, Instagram personal, Snapchat
   (manual-reminder only — not possible via any third-party tool).
 - Post-publish analytics automation (`ge-analyze` remains manually invoked).
@@ -183,5 +190,7 @@ consent, Opus Clip connection, and retrieving the IDs.
 3. `ge-distribute` YouTube adapter + `youtube_schedule.py`.
 4. `ge-video-daily` orchestrator wiring steps 2–6 of the data flow + `notify.py`.
 5. launchd installer (`bin/`); manual end-to-end test; enable timer.
-6. v2: Opus Clip adapter (`opusclip_post.py`) behind the `ge-distribute`
-   interface.
+6. v2 distribution behind the `ge-distribute` interface: Opus Clip adapter
+   (`opusclip_post.py`) for social cross-posts, and the Kit adapter
+   (`kit_broadcast.py`) for the newsletter email — both scheduled to the video's
+   go-live time.

@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from gevideo import queue
 from gevideo import heygen
+from gevideo import notify
 from gevideo import youtube
 from gevideo.config import load_config
 from gevideo.secrets import get_secret
@@ -60,6 +61,11 @@ def main(argv: list[str] | None = None) -> int:
     p_stage.add_argument("--title", default=None)
     p_stage.add_argument("--description", default=None)
     p_stage.add_argument("--tags", default=None)
+
+    p_notify = sub.add_parser("notify-chat")
+    p_notify.add_argument("--date", default=None)
+    p_notify.add_argument("--text", default=None)
+    p_notify.add_argument("--webhook-url", default=None)
 
     args = parser.parse_args(argv)
     data_dir = args.data_dir
@@ -207,6 +213,24 @@ def main(argv: list[str] | None = None) -> int:
                                         if t.strip()]
         queue.save_pipeline_item(data_dir, item)
         print(f"{args.date} -> {target} ({args.verdict})")
+        return 0
+
+    if args.command == "notify-chat":
+        url = args.webhook_url or get_secret("GCHAT_WEBHOOK_URL")
+        if args.text:
+            message = args.text
+        elif args.date:
+            item = queue.load_pipeline_item(data_dir, args.date)
+            if item is None:
+                print(f"no pipeline item for {args.date}", file=sys.stderr)
+                return 1
+            msg = notify.build_approval_message(item)
+            message = f"{msg['subject']}\n\n{msg['body']}"
+        else:
+            print("notify-chat needs --text or --date", file=sys.stderr)
+            return 1
+        notify.post_chat_webhook(url, message)
+        print("chat notified")
         return 0
 
     return 1

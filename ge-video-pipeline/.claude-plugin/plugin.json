@@ -1,6 +1,6 @@
 {
   "name": "ge-video-pipeline",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Daily HeyGen short-form video pipeline for Great Elephant Law — content queue, scheduling, and approval workflow that feeds YouTube and (later) cross-post distribution. Depends on the ge-youtube content + compliance skills.",
   "author": {
     "name": "Chris Washington",

@@ -6,10 +6,12 @@ scheduling, and the approve-then-publish workflow. It reuses the `ge-youtube`
 content + compliance skills (ge-ideate, ge-script, ge-shorts, ge-publish).
 
 ## Status
-- **Plan 1 (this build): backbone** — config, content queue, slot computation,
-  `ge-content-queue` skill + CLI. Tested, no external APIs.
-- Plan 2: HeyGen generation. Plan 3: YouTube publish. Plan 4: orchestrator +
-  notifications + launchd. Plan 5: Opus Clip cross-post + Kit newsletter.
+- **Plan 1: backbone — DONE.** config, content queue, slot computation,
+  `ge-content-queue` skill + CLI.
+- **Plan 2: HeyGen generation — DONE.** `gevideo.heygen` client + `ge-heygen`
+  skill + `heygen-generate` CLI. Renders the attorney's custom avatar+voice.
+- Plan 3: YouTube publish. Plan 4: orchestrator + notifications + launchd.
+  Plan 5: Opus Clip cross-post + Kit newsletter.
 
 ## Setup
 ```bash
@@ -42,4 +44,19 @@ $PY -m gevideo.cli --data-dir "$DATA" backlog-list
 $PY -m gevideo.cli --data-dir "$DATA" backlog-promote --id <id>
 $PY -m gevideo.cli --data-dir "$DATA" queue-status
 $PY -m gevideo.cli --data-dir "$DATA" approve --date 2026-06-18
+```
+
+## HeyGen rendering
+Requires a **paid HeyGen API plan** (no free API tier) and the attorney's custom
+`avatar_id` / `voice_id` in `~/.config/ge-video/config.json`. Put the API key in
+`~/.config/ge-video/secrets.json` (`{"HEYGEN_API_KEY": "..."}`, chmod 600) or the
+`HEYGEN_API_KEY` env var.
+
+```bash
+PY=.venv/bin/python
+DATA=~/.local/share/ge-video
+CFG=~/.config/ge-video/config.json
+# script.txt must be SPOKEN words only, <= 1500 chars
+$PY -m gevideo.cli --data-dir "$DATA" heygen-generate \
+  --date 2026-06-18 --script-file script.txt --config "$CFG"
 ```

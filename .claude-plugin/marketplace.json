@@ -18,6 +18,16 @@
         "name": "Chris Washington",
         "email": "cjw@danielswashington.com"
       }
+    },
+    {
+      "name": "ge-video-pipeline",
+      "source": "./ge-video-pipeline",
+      "description": "Daily HeyGen short-form video pipeline — content queue, scheduling, and approval workflow feeding YouTube and cross-post distribution.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Chris Washington",
+        "email": "cjw@danielswashington.com"
+      }
     }
   ]
 }

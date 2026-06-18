@@ -37,6 +37,7 @@ def build_generate_payload(*, script: str, avatar_id: str, voice_id: str,
 
 
 import json
+import time
 import urllib.request
 from pathlib import Path
 
@@ -97,3 +98,42 @@ class HeyGenClient:
         dest = Path(dest_path)
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
+
+
+class HeyGenTimeout(Exception):
+    """Raised when a render does not complete within the timeout."""
+
+
+def wait_for_completion(client, video_id: str, *, poll_interval: int = 10,
+                        timeout: int = 1800, sleep=time.sleep,
+                        now=time.monotonic) -> dict:
+    deadline = now() + timeout
+    first = True
+    while True:
+        if not first:
+            if now() >= deadline:
+                raise HeyGenTimeout(video_id)
+            sleep(poll_interval)
+        first = False
+        data = client.get_status(video_id)
+        status = data["status"]
+        if status == "completed":
+            return data
+        if status == "failed":
+            raise HeyGenError(data.get("error"))
+        # pending / processing / waiting -> loop
+
+
+def generate_to_file(client, *, script: str, avatar_id: str, voice_id: str,
+                     title: str, dest_path, width: int = 720,
+                     height: int = 1280, speed: float = 1.0,
+                     poll_interval: int = 10, timeout: int = 1800,
+                     sleep=time.sleep, now=time.monotonic) -> dict:
+    video_id = client.create_video(
+        script=script, avatar_id=avatar_id, voice_id=voice_id, title=title,
+        width=width, height=height, speed=speed)
+    data = wait_for_completion(client, video_id, poll_interval=poll_interval,
+                               timeout=timeout, sleep=sleep, now=now)
+    client.download(data["video_url"], dest_path)
+    return {"video_id": video_id, "video_url": data["video_url"],
+            "duration": data.get("duration")}

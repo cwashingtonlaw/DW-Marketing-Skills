@@ -12,8 +12,9 @@ content + compliance skills (ge-ideate, ge-script, ge-shorts, ge-publish).
   skill + `heygen-generate` CLI. Renders the attorney's custom avatar+voice.
 - **Plan 3: YouTube publish — DONE.** `gevideo.youtube` adapter + `ge-distribute`
   skill + `youtube-schedule` CLI. Uploads private with a scheduled `publishAt`.
-- Plan 4: orchestrator + notifications + launchd. Plan 5: Opus Clip cross-post +
-  Kit newsletter.
+- **Plan 4: orchestrator — DONE.** `ge-video-daily` skill chains the whole flow;
+  `daily-start`/`stage`/`notify-chat` CLI + Google Chat notifier + launchd job.
+- Plan 5: Opus Clip cross-post + Kit newsletter.
 
 ## Setup
 ```bash
@@ -82,3 +83,22 @@ CFG=~/.config/ge-video/config.json
 # item must be approved and have a rendered video.mp4
 $PY -m gevideo.cli --data-dir "$DATA" youtube-schedule --date 2026-06-18 --config "$CFG"
 ```
+
+## Daily automation
+The `ge-video-daily` skill runs the whole loop for one day: pull topic → script
+(ge-script/ge-shorts) → render (ge-heygen) → package (ge-package/ge-seo) →
+compliance gate (ge-publish) → stage → notify for approval. It never publishes;
+the attorney approves via `ge-content-queue`, which triggers `ge-distribute`.
+
+Notifications go to **Google Chat** via an incoming webhook — set
+`GCHAT_WEBHOOK_URL` in `~/.config/ge-video/secrets.json` (or pass `--webhook-url`).
+Email is an optional interactive step via the Gmail connector.
+
+Install the daily timer (macOS launchd, runs 06:00):
+```bash
+ge-video-pipeline/bin/install-launchd.sh
+# test immediately:
+launchctl start com.greatelephant.gevideo.daily
+tail -f ~/.local/share/ge-video/daily.log
+```
+Run a one-off without launchd: `claude -p "Run the ge-video-daily skill ..."`.

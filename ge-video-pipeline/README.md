@@ -10,8 +10,10 @@ content + compliance skills (ge-ideate, ge-script, ge-shorts, ge-publish).
   `ge-content-queue` skill + CLI.
 - **Plan 2: HeyGen generation — DONE.** `gevideo.heygen` client + `ge-heygen`
   skill + `heygen-generate` CLI. Renders the attorney's custom avatar+voice.
-- Plan 3: YouTube publish. Plan 4: orchestrator + notifications + launchd.
-  Plan 5: Opus Clip cross-post + Kit newsletter.
+- **Plan 3: YouTube publish — DONE.** `gevideo.youtube` adapter + `ge-distribute`
+  skill + `youtube-schedule` CLI. Uploads private with a scheduled `publishAt`.
+- Plan 4: orchestrator + notifications + launchd. Plan 5: Opus Clip cross-post +
+  Kit newsletter.
 
 ## Setup
 ```bash
@@ -59,4 +61,24 @@ CFG=~/.config/ge-video/config.json
 # script.txt must be SPOKEN words only, <= 1500 chars
 $PY -m gevideo.cli --data-dir "$DATA" heygen-generate \
   --date 2026-06-18 --script-file script.txt --config "$CFG"
+```
+
+## YouTube scheduling
+Install the Google libraries: `.venv/bin/pip install -e ".[dev,youtube]"`.
+
+Create a **Desktop OAuth client** in a Google Cloud project with the YouTube Data
+API enabled; download it to `~/.config/ge-video/youtube_client_secret.json`. The
+first run opens a browser for consent and writes `~/.config/ge-video/youtube_token.json`
+(reused thereafter). Scope: `youtube.upload`.
+
+> **Important:** uploads from an *unverified* Cloud project are locked to private
+> until the project passes Google's API audit — schedule will not go public until
+> then. Keep the OAuth consent screen's test user = the channel owner.
+
+```bash
+PY=.venv/bin/python
+DATA=~/.local/share/ge-video
+CFG=~/.config/ge-video/config.json
+# item must be approved and have a rendered video.mp4
+$PY -m gevideo.cli --data-dir "$DATA" youtube-schedule --date 2026-06-18 --config "$CFG"
 ```

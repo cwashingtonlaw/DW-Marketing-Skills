@@ -43,8 +43,27 @@ Echo the scheduled video id and publish time. Remind the attorney of the
 manual-post destinations a tool cannot automate (Facebook personal, Instagram
 personal, Snapchat) — attach/link the MP4 for manual posting.
 
-## STEP 3 — NOTES
-- One upload = 1600 of the 10,000 daily YouTube quota units (~6/day max).
+## STEP 3 — v2 DISTRIBUTION (after YouTube is scheduled)
+Once the item is `scheduled` (has `youtube_video_id` + `publish_at`), optionally
+fan out — both timed to the same go-live:
+
+- **Newsletter (Kit):** `GE kit-broadcast --date <today>` — schedules a Kit email
+  to the subscriber list linking the YouTube video, sent at `publish_at`. Needs
+  `KIT_API_KEY` in secrets. Records `kit_broadcast_id`.
+- **Social cross-post (webhook):** `GE crosspost --date <today>` — POSTs
+  `{video_url, title, description, publish_at, platforms}` to the configured
+  webhook (`CROSSPOST_WEBHOOK_URL`). Wire that webhook to your scheduler (Zapier
+  Catch Hook / Make / Buffer / Publer) which posts to Facebook Page, Instagram,
+  TikTok, LinkedIn, X. **Opus Clip's API cannot post an external finished video,
+  so the handoff is tool-agnostic.** Records `crosspost`.
+
+Both fail soft: if a v2 step errors, the YouTube publish still stands — report
+the failure so it can be retried or done by hand.
+
+## STEP 4 — NOTES
+- One YouTube upload = 1600 of the 10,000 daily quota units (~6/day max).
 - A Short is just a vertical (9:16) video <= 3 minutes; no special API flag.
-- ge-distribute only acts on `approved` items and only sets `scheduled`; it never
-  publishes on HOLD or without approval.
+- ge-distribute only acts on `approved`/`scheduled` items and never publishes on
+  HOLD or without approval.
+- Manual-only destinations (no tool automates them): Facebook personal,
+  Instagram personal, Snapchat.

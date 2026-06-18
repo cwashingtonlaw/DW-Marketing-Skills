@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import date
 from pathlib import Path
 
 
@@ -79,6 +80,7 @@ def create_pipeline_item(date: str, topic: dict) -> dict:
         "metadata": {},          # title, description, tags, thumbnail brief
         "compliance_verdict": None,
         "publish_at": None,      # RFC3339 string set at scheduling time
+        "publish_date": None,    # local calendar date (YYYY-MM-DD) of the slot
         "youtube_video_id": None,
     }
 
@@ -106,3 +108,20 @@ def load_pipeline_item(data_dir: Path | str, date: str) -> dict | None:
     if not path.exists():
         return None
     return json.loads(path.read_text())
+
+
+def scheduled_publish_dates(data_dir: Path | str) -> set:
+    """Return the set of local publish dates already taken by pipeline items."""
+    base = Path(data_dir) / "pipeline"
+    result: set = set()
+    if not base.exists():
+        return result
+    for child in base.iterdir():
+        meta = child / "metadata.json"
+        if not meta.exists():
+            continue
+        item = json.loads(meta.read_text())
+        pd = item.get("publish_date")
+        if pd:
+            result.add(date.fromisoformat(pd))
+    return result

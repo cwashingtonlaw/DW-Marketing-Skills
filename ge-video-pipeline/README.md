@@ -14,7 +14,8 @@ content + compliance skills (ge-ideate, ge-script, ge-shorts, ge-publish).
   skill + `youtube-schedule` CLI. Uploads private with a scheduled `publishAt`.
 - **Plan 4: orchestrator — DONE.** `ge-video-daily` skill chains the whole flow;
   `daily-start`/`stage`/`notify-chat` CLI + Google Chat notifier + launchd job.
-- Plan 5: Opus Clip cross-post + Kit newsletter.
+- **Plan 5: v2 distribution — DONE.** `gevideo.kit` newsletter (v4 broadcasts) +
+  `gevideo.crosspost` webhook handoff, both scheduled to the video's go-live.
 
 ## Setup
 ```bash
@@ -102,3 +103,23 @@ launchctl start com.greatelephant.gevideo.daily
 tail -f ~/.local/share/ge-video/daily.log
 ```
 Run a one-off without launchd: `claude -p "Run the ge-video-daily skill ..."`.
+
+## v2 distribution (newsletter + cross-post)
+Both run after a video is scheduled on YouTube, timed to the same go-live:
+
+- **Kit newsletter:** set `KIT_API_KEY` in `~/.config/ge-video/secrets.json`.
+  `GE kit-broadcast --date <date>` schedules a Kit email (v4 broadcasts API)
+  linking the YouTube video.
+- **Cross-post webhook:** set `CROSSPOST_WEBHOOK_URL` in secrets.
+  `GE crosspost --date <date>` POSTs `{video_url, title, description,
+  publish_at, platforms}` to that webhook. Wire it to Zapier / Make / Buffer /
+  Publer to post to FB Page, Instagram, TikTok, LinkedIn, X. (Opus Clip's API
+  can't post an external finished video, so this handoff is tool-agnostic — point
+  the webhook at whichever scheduler you use.)
+
+```bash
+GE() { .venv/bin/python -m gevideo.cli --data-dir ~/.local/share/ge-video "$@"; }
+GE kit-broadcast --date 2026-06-18
+GE crosspost --date 2026-06-18           # uses CROSSPOST_WEBHOOK_URL
+GE crosspost --date 2026-06-18 --platforms "tiktok,x"
+```

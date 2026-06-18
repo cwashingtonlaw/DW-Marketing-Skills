@@ -50,6 +50,9 @@ def main(argv: list[str] | None = None) -> int:
     p_sched.add_argument("--token-file", default=_yt_token)
     p_sched.add_argument("--client-secret", default=_yt_secret)
 
+    p_daily = sub.add_parser("daily-start")
+    p_daily.add_argument("--date", default=None)
+
     args = parser.parse_args(argv)
     data_dir = args.data_dir
 
@@ -154,6 +157,25 @@ def main(argv: list[str] | None = None) -> int:
         item["publish_date"] = publish_date
         queue.save_pipeline_item(data_dir, item)
         print(f"{args.date} -> scheduled {video_id} to publish {publish_at}")
+        return 0
+
+    if args.command == "daily-start":
+        target_date = args.date or date.today().isoformat()
+        existing = queue.load_pipeline_item(data_dir, target_date)
+        if existing is not None:
+            print(f"{target_date} already started: {existing['title']} "
+                  f"({existing['status']})")
+            return 0
+        backlog = queue.load_backlog(data_dir)
+        topic = queue.consume_next_ready(backlog)
+        if topic is None:
+            print("backlog empty: no ready topic. Run ge-ideate to refill.",
+                  file=sys.stderr)
+            return 2
+        queue.save_backlog(data_dir, backlog)
+        item = queue.create_pipeline_item(target_date, topic)
+        queue.save_pipeline_item(data_dir, item)
+        print(f"{target_date} started: {topic['title']}")
         return 0
 
     return 1

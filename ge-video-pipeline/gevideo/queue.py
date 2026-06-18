@@ -35,6 +35,14 @@ def count_ready(backlog: list[dict]) -> int:
     return sum(1 for item in backlog if item["status"] == "ready")
 
 
+def consume_next_ready(backlog: list[dict]) -> dict | None:
+    for item in backlog:
+        if item["status"] == "ready":
+            item["status"] = "used"
+            return item
+    return None
+
+
 def _backlog_path(data_dir: Path | str) -> Path:
     return Path(data_dir) / "backlog.json"
 

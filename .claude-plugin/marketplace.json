@@ -1,0 +1,23 @@
+{
+  "name": "dw-marketing",
+  "owner": {
+    "name": "Chris Washington",
+    "url": "https://danielswashington.com"
+  },
+  "description": "Daniels & Washington marketing toolkit — law-firm marketing skills with attorney-advertising compliance built in. Currently ships the ge-youtube plugin (Great Elephant Law YouTube growth).",
+  "metadata": {
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "ge-youtube",
+      "source": "./ge-youtube",
+      "description": "Great Elephant Law YouTube growth toolkit — 12 chainable skills covering attorney-advertising compliance, channel audit, ideation, scripting, packaging, SEO, Shorts, publishing gate, community, and analytics. Built for subscriber + view growth with compliance baked into every step.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Chris Washington",
+        "email": "cjw@danielswashington.com"
+      }
+    }
+  ]
+}

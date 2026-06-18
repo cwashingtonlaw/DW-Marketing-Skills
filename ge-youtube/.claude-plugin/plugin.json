@@ -1,0 +1,10 @@
+{
+  "name": "ge-youtube",
+  "version": "1.0.0",
+  "description": "Great Elephant Law YouTube growth toolkit — 12 chainable skills covering attorney-advertising compliance, channel audit, ideation, scripting, packaging, SEO, Shorts, publishing gate, community, and analytics. Built for subscriber + view growth with compliance baked into every step.",
+  "author": {
+    "name": "Chris Washington",
+    "email": "cjw@danielswashington.com"
+  },
+  "skills": "./skills"
+}

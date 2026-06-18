@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from gevideo import queue
+from gevideo import heygen
+from gevideo.config import load_config
+from gevideo.secrets import get_secret
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,6 +31,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p_rej = sub.add_parser("reject")
     p_rej.add_argument("--date", required=True)
+
+    p_gen = sub.add_parser("heygen-generate")
+    p_gen.add_argument("--date", required=True)
+    p_gen.add_argument("--script-file", required=True)
+    p_gen.add_argument("--config", required=True)
 
     args = parser.parse_args(argv)
     data_dir = args.data_dir
@@ -72,6 +81,25 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         queue.save_pipeline_item(data_dir, item)
         print(f"{args.date} -> {target}")
+        return 0
+
+    if args.command == "heygen-generate":
+        item = queue.load_pipeline_item(data_dir, args.date)
+        if item is None:
+            print(f"no pipeline item for {args.date}", file=sys.stderr)
+            return 1
+        cfg = load_config(args.config)
+        script = Path(args.script_file).read_text()
+        api_key = get_secret("HEYGEN_API_KEY")
+        client = heygen.HeyGenClient(api_key)
+        dest = Path(data_dir) / "pipeline" / args.date / "video.mp4"
+        result = heygen.generate_to_file(
+            client, script=script, avatar_id=cfg.avatar_id,
+            voice_id=cfg.voice_id, title=item["title"], dest_path=dest)
+        item["video_path"] = str(dest)
+        item["metadata"]["heygen_video_id"] = result["video_id"]
+        queue.save_pipeline_item(data_dir, item)
+        print(f"{args.date} -> rendered {result['video_id']} -> {dest}")
         return 0
 
     return 1

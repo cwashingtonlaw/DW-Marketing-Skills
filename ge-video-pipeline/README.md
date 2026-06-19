@@ -110,12 +110,13 @@ Both run after a video is scheduled on YouTube, timed to the same go-live:
 - **Kit newsletter:** set `KIT_API_KEY` in `~/.config/ge-video/secrets.json`.
   `GE kit-broadcast --date <date>` schedules a Kit email (v4 broadcasts API)
   linking the YouTube video.
-- **Cross-post webhook:** set `CROSSPOST_WEBHOOK_URL` in secrets.
-  `GE crosspost --date <date>` POSTs `{video_url, title, description,
-  publish_at, platforms}` to that webhook. Wire it to Zapier / Make / Buffer /
-  Publer to post to FB Page, Instagram, TikTok, LinkedIn, X. (Opus Clip's API
-  can't post an external finished video, so this handoff is tool-agnostic — point
-  the webhook at whichever scheduler you use.)
+- **Cross-post:** the firm uses **Opus Clip, scheduled manually** — Opus's API
+  can't ingest an external finished video, so the approval notification reminds
+  the attorney to load the MP4 into Opus and schedule FB Page / Instagram /
+  TikTok / LinkedIn / X by hand. To automate instead, set `CROSSPOST_WEBHOOK_URL`
+  and run `GE crosspost --date <date>` — it POSTs `{video_url, title,
+  description, publish_at, platforms}` to a Zapier / Make / Buffer / Publer
+  webhook you control.
 
 ```bash
 GE() { .venv/bin/python -m gevideo.cli --data-dir ~/.local/share/ge-video "$@"; }

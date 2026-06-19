@@ -22,6 +22,10 @@ def test_body_has_verdict_video_and_manual_reminder():
     assert "CLEAR" in body
     assert "/data/pipeline/2026-06-18/video.mp4" in body
     assert "approve today's video" in body
+    # manual cross-post via Opus
+    assert "Opus" in body
+    assert "Facebook Page" in body
+    # destinations no tool automates
     assert "Facebook personal" in body
     assert "Instagram personal" in body
     assert "Snapchat" in body

@@ -50,12 +50,14 @@ fan out — both timed to the same go-live:
 - **Newsletter (Kit):** `GE kit-broadcast --date <today>` — schedules a Kit email
   to the subscriber list linking the YouTube video, sent at `publish_at`. Needs
   `KIT_API_KEY` in secrets. Records `kit_broadcast_id`.
-- **Social cross-post (webhook):** `GE crosspost --date <today>` — POSTs
-  `{video_url, title, description, publish_at, platforms}` to the configured
-  webhook (`CROSSPOST_WEBHOOK_URL`). Wire that webhook to your scheduler (Zapier
-  Catch Hook / Make / Buffer / Publer) which posts to Facebook Page, Instagram,
-  TikTok, LinkedIn, X. **Opus Clip's API cannot post an external finished video,
-  so the handoff is tool-agnostic.** Records `crosspost`.
+- **Social cross-post:** this firm uses **Opus Clip, scheduled manually** —
+  Opus's API cannot ingest an external finished video, so the daily approval
+  notification reminds the attorney to load the rendered MP4 into Opus and
+  schedule FB Page / Instagram / TikTok / LinkedIn / X by hand. (The automated
+  `GE crosspost --date <today>` webhook handoff remains available if you later
+  wire a Zapier/Make/Buffer/Publer scheduler via `CROSSPOST_WEBHOOK_URL`; it
+  POSTs `{video_url, title, description, publish_at, platforms}` and records
+  `crosspost`.)
 
 Both fail soft: if a v2 step errors, the YouTube publish still stands — report
 the failure so it can be retried or done by hand.

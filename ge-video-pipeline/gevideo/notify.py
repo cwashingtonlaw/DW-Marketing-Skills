@@ -21,8 +21,11 @@ def build_approval_message(item: dict) -> dict:
         "",
         'To publish: run "approve today\'s video" (or reject to send to HOLD).',
         "",
-        "Manual posts (no tool can automate these): "
-        "Facebook personal, Instagram personal, Snapchat.",
+        "After approval (YouTube + newsletter auto-schedule). Manual steps:",
+        "- Cross-post via Opus Clip: Facebook Page, Instagram, TikTok, LinkedIn, "
+        "X — load the video file above into your Opus scheduler.",
+        "- No tool automates these: Facebook personal, Instagram personal, "
+        "Snapchat.",
     ])
     return {"subject": subject, "body": body}
 
